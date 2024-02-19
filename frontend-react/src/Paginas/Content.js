@@ -1,42 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import Card from '@mui/material/Card';
 import CardMedia from '@mui/material/CardMedia';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
 import CardActions from '@mui/material/CardActions';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 
-function Content() {
-  const [rawData, setRawData] = useState('');
-  const [imageUrls, setImageUrls] = useState([]);
+import Navigator from './Navigator';
+
+function Content({ dato, miFuncionEnPaperbase }) {
+
+  const [mediaItems, setMediaItems] = useState([]);
+  const [selectedMedia, setSelectedMedia] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState('');
+  const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
+  const [mediaToDelete, setMediaToDelete] = useState(null);
+
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const dataParam = params.get('data');
-
-    if (dataParam) {
-      setRawData(dataParam);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      const data = JSON.parse(rawData);
-      if (Array.isArray(data)) {
-        setImageUrls(data);
+    const fetchData = async () => {
+      try {
+        const response = await fetch(dato === "SIIII" ? 'http://localhost:80/data' : 'http://localhost:80/eliminado');
+        if (response.ok) {
+          const responseData = await response.json();
+          setMediaItems(responseData);
+        } else {
+          console.error('Error al obtener datos del servidor:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error al obtener datos del servidor:', error);
       }
-    } catch (error) {
-      console.error('Error al analizar datos en bruto:', error);
-    }
-  }, [rawData]);
+    };
+    fetchData();
+  }, [dato]);
 
-  const handleImageClick = (url) => {
-    setSelectedImageUrl(url);
+  const handleMediaClick = (media) => {
+    setSelectedMedia(media);
     setOpenDialog(true);
   };
 
@@ -44,12 +44,39 @@ function Content() {
     setOpenDialog(false);
   };
 
+  const openVideoInNewTab = (videoUrl) => {
+    window.open(videoUrl, '_blank');
+  };
+
+  const eliminarFoto = async (media) => {
+    try {
+      const response = await fetch(`http://localhost:80/eliminar-foto/${media.id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        const responseData = await response.json();
+        setConfirmDeleteDialogOpen(false);
+        setMediaItems(responseData);
+      } else {
+        console.error('Error al eliminar la foto:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error al eliminar la foto:', error);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (mediaToDelete) {
+      eliminarFoto(mediaToDelete);
+    }
+  };
+
   return (
     <div>
-      {imageUrls.length > 0 ? (
+      {mediaItems.length > 0 ? (
         <div>
           <Grid container spacing={2}>
-            {imageUrls.map((url, index) => (
+            {mediaItems.map((media, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
                 <Card
                   sx={{
@@ -62,35 +89,53 @@ function Content() {
                     component="div"
                     sx={{
                       pt: '75%',
-                      backgroundColor: 'blue', // Cambia el color de fondo aquí
-                      cursor: 'pointer', // Cambia el cursor al pasar sobre la imagen
+                      backgroundColor: 'blue',
+                      cursor: 'pointer',
                     }}
-                    image={url}
-                    onClick={() => handleImageClick(url)}
+                    image={media.baseUrl}
+                    onClick={() => {
+                      if (media.mimeType && media.mimeType.startsWith('image')) {
+                        handleMediaClick(media);
+                      } else if (media.mimeType && media.mimeType.startsWith('video')) {
+                        openVideoInNewTab(media.productUrl);
+                      }
+                    }}
                   />
-                  <CardContent>
-                    <Typography variant="body2" color="text.secondary">
-                      Contenido de la tarjeta
-                    </Typography>
-                  </CardContent>
+
                   <CardActions sx={{ backgroundColor: '#eaeff1' }}>
-                    <Button size="small">Edit</Button>
+                    {dato === "SIIII" && ( 
+                      <Button size="small" onClick={() => {
+                        setMediaToDelete(media);
+                        setConfirmDeleteDialogOpen(true);
+                      }}>Eliminar</Button>
+                    )} 
                   </CardActions>
                 </Card>
               </Grid>
             ))}
           </Grid>
 
-          {/* Diálogo para mostrar la imagen en pantalla completa */}
           <Dialog open={openDialog} onClose={handleCloseDialog}>
             <DialogContent>
-              <img src={selectedImageUrl} alt="FullScreen" style={{ width: '100%', height: 'auto' }} />
+              {selectedMedia && selectedMedia.mimeType && selectedMedia.mimeType.startsWith('image') ? (
+                <img src={selectedMedia.baseUrl} alt="FullScreen" style={{ width: '100%', height: 'auto' }} />
+              ) : null}
+            </DialogContent>
+          </Dialog>
+
+         
+          <Dialog open={confirmDeleteDialogOpen} onClose={() => setConfirmDeleteDialogOpen(false)}>
+            <DialogContent>
+              <p>¿Estás seguro de que deseas eliminar esta foto?</p>
+              <Button onClick={handleConfirmDelete}>Sí</Button>
+              <Button onClick={() => setConfirmDeleteDialogOpen(false)}>No</Button>
             </DialogContent>
           </Dialog>
         </div>
       ) : (
-        <p>No hay imágenes para mostrar.</p>
+        <p>No hay medios para mostrar.</p>
       )}
+      <Navigator data={mediaItems} miFuncionEnPaperbase={miFuncionEnPaperbase} />
     </div>
   );
 }

@@ -8,13 +8,17 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 import CompBase from "./Paginas/CompBase";
 import Ho from "./Paginas/Ho";
+import Delete from "./Paginas/Delete";
 import Default from "./Paginas/Default";
 import Dashboard from "./Paginas/Dashboard";
+import DataBase from "./Paginas/DataBase";
+import Subir from "./Paginas/SubirPhotos";
 
 const App = () => {
   const location = useLocation();
 
   const showLoginInterface = location.pathname !== '/photos';
+ // La quitar la barra {useLocation().pathname === '/' && renderAppBar()}  
 
   const renderAppBar = () => (
     <AppBar position="static" style={{ background: '#314850' }}>
@@ -34,11 +38,15 @@ const App = () => {
 
   return (
     <div className="app-container">
-      {showLoginInterface && renderAppBar()}
+      {useLocation().pathname === '/' && renderAppBar()}
+      
       <Routes>
         <Route path="/" element={<Ho />} />
         <Route path="/photos" element={<CompBase />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/data-base" element={<DataBase />} />
+        <Route path="/delete" element={<Delete />} />
+        <Route path="/subir" element={<Subir />} />
         <Route path="*" element={<Default />} />
       </Routes>
     </div>

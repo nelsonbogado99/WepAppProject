@@ -10,6 +10,7 @@ const Layout = () =>{
           <li>
             <Link to="/photos"></Link>
           </li>
+         
           <li>
             <Link to="/dashboard">Autentic </Link>
           </li>
